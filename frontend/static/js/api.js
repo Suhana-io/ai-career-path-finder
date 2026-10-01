@@ -3,7 +3,7 @@
    Load this BEFORE app.js and your login script.
    ═══════════════════════════════════════════ */
 
-const BASE_URL = 'http://127.0.0.1:5000';
+const BASE_URL = 'https://ai-career-path-finder-v3mg.onrender.com';
 
 const getToken = () => localStorage.getItem('token');
 const getUser  = () => {
