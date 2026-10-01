@@ -2,7 +2,7 @@
    api.js — all backend calls in one place
    ═══════════════════════════════════════════ */
 
-const BASE_URL = 'https://ai-career-backend.onrender.com';
+const BASE_URL = 'http://127.0.0.1:5000';
 
 const getToken = () => localStorage.getItem('token');
 const getUser  = () => JSON.parse(localStorage.getItem('user') || 'null');

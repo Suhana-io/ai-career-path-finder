@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: ai-career-path-finder
-    env: python
-    buildCommand: pip install -r backend/requirements.txt
-    startCommand: gunicorn backend.app:app
-    envVars:
-      - key: JWT_SECRET_KEY
-        value: jwt_aicareerfinder_2025_super_secret_key_32bytes
