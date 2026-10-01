@@ -8,13 +8,24 @@ if (!localStorage.getItem('token')) {
 
 const user = getUser();
 
+/* Escape user-entered text before putting it into innerHTML */
+function esc(str) {
+  return String(str).replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+
 /* ── Toast ────────────────────────────────── */
 function toast(msg, type = 'info') {
   const wrap = document.getElementById('toast-wrap');
   const el   = document.createElement('div');
   el.className = `toast toast-${type}`;
   const icons = { success: '✅', error: '❌', info: 'ℹ️' };
-  el.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+  const iconEl = document.createElement('span');
+  iconEl.textContent = icons[type] || icons.info;
+  const msgEl = document.createElement('span');
+  msgEl.textContent = msg;
+  el.append(iconEl, msgEl);
   wrap.appendChild(el);
   setTimeout(() => el.remove(), 3500);
 }
@@ -224,7 +235,13 @@ function renderSkillTags() {
   skills.forEach(s => {
     const tag = document.createElement('span');
     tag.className = 'skill-tag';
-    tag.innerHTML = `${s}<button class="skill-tag-remove" onclick="removeSkill('${s}')">×</button>`;
+    tag.appendChild(document.createTextNode(s));
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'skill-tag-remove';
+    btn.textContent = '×';
+    btn.addEventListener('click', () => removeSkill(s));
+    tag.appendChild(btn);
     el.appendChild(tag);
   });
 }
@@ -448,7 +465,7 @@ async function fetchAndRenderGap(careerId) {
     bar.style.background = d.match_percent >= 70 ? '#22C55E' : d.match_percent >= 40 ? '#F59E0B' : '#EF4444';
     document.getElementById('gap-your-skills').innerHTML =
       d.user_skills.length
-        ? d.user_skills.map(s=>`<span class="chip chip-blue">${s}</span>`).join('')
+        ? d.user_skills.map(s=>`<span class="chip chip-blue">${esc(s)}</span>`).join('')
         : '<span style="color:#9CA3AF">No skills added yet</span>';
     document.getElementById('gap-required').innerHTML =
       d.required_skills.map(s =>
@@ -489,6 +506,7 @@ async function fetchAndRenderRoadmap(careerId, careerName) {
     const ul           = document.getElementById('rm-steps');
     ul.innerHTML       = '';
     const phases       = groupIntoPhases(d.roadmap);
+    const nextIdx      = (d.roadmap.find(s => !s.completed) || {}).step_index;
     const phaseNames   = ['Foundations','Core Skills','Advanced','Capstone'];
     const phaseIcons   = ['🌱','⚙️','🚀','🏆'];
     const phaseClasses = ['phase-1','phase-2','phase-3','phase-4'];
@@ -499,7 +517,7 @@ async function fetchAndRenderRoadmap(careerId, careerName) {
                          <div class="rm-timeline" id="phase-${pi}"></div>`;
       ul.appendChild(phDiv);
       const tl = document.getElementById('phase-' + pi);
-      phase.forEach(item => tl.appendChild(buildRoadmapStep(item, careerId, d.completed_steps)));
+      phase.forEach(item => tl.appendChild(buildRoadmapStep(item, careerId, nextIdx)));
     });
   } catch(err) { toast(err.message, 'error'); }
 }
@@ -546,11 +564,11 @@ function groupIntoPhases(steps) {
   return [0,1,2,3].map(i => steps.slice(i*size,(i+1)*size)).filter(p => p.length > 0);
 }
 
-function buildRoadmapStep(item, careerId, doneCount) {
-  const statusClass = item.completed ? 'done' : item.step_index === doneCount ? 'current' : 'pending';
+function buildRoadmapStep(item, careerId, nextIdx) {
+  const statusClass = item.completed ? 'done' : item.step_index === nextIdx ? 'current' : 'pending';
   const badge = item.completed
     ? '<span class="rm-step-badge badge-done">Completed</span>'
-    : item.step_index === doneCount ? '<span class="rm-step-badge badge-current">In progress</span>' : '';
+    : item.step_index === nextIdx ? '<span class="rm-step-badge badge-current">In progress</span>' : '';
   const div = document.createElement('div');
   div.className = `rm-step ${statusClass}`;
   div.innerHTML = `
@@ -972,9 +990,17 @@ function hideTyping() {
 
 function getBotResponse(input) {
   const lower = input.toLowerCase();
+  let best = null;
   for (const [key, response] of Object.entries(chatResponses)) {
-    if (lower.includes(key)) return response;
+    // short keys (hi, ai, hr, ml...) must be whole words; longer ones match word starts
+    const re = new RegExp('\\b' + key + (key.length <= 3 ? '\\b' : ''));
+    const m  = re.exec(lower);
+    if (!m) continue;
+    if (!best || m.index < best.index || (m.index === best.index && key.length > best.len)) {
+      best = { index: m.index, len: key.length, response };
+    }
   }
+  if (best) return best.response;
   return `I'm not sure about that, but I can help you with:\n• Career recommendations\n• Skill gap analysis\n• Learning roadmaps\n• Placement preparation\n\nTry asking about a career like "web developer" or "machine learning"!`;
 }
 
