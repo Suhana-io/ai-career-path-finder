@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head><title>Debug Test</title></head>
+<body style="font-family:sans-serif;padding:20px">
+<h2>🔍 Debug Test Page</h2>
+<div id="results"></div>
+<script>
+const BASE = 'http://127.0.0.1:5000';
+const token = localStorage.getItem('token');
+const user  = localStorage.getItem('user');
+
+function log(msg, color='#333') {
+  document.getElementById('results').innerHTML +=
+    `<div style="padding:8px;margin:6px 0;border-radius:6px;background:#f5f5f5;color:${color};font-size:14px">${msg}</div>`;
+}
+
+async function runTests() {
+  log('Starting tests...', '#1D4ED8');
+
+  // Test 1 - token
+  if (token) {
+    log('✅ Token found in localStorage', '#166534');
+  } else {
+    log('❌ No token — please login first', '#991B1B');
+  }
+
+  // Test 2 - user
+  if (user) {
+    const u = JSON.parse(user);
+    log(`✅ User found: ${u.name} (${u.email})`, '#166534');
+  } else {
+    log('❌ No user data', '#991B1B');
+  }
+
+  // Test 3 - backend home
+  try {
+    const r = await fetch(BASE + '/');
+    const d = await r.json();
+    log('✅ Backend is running: ' + d.message, '#166534');
+  } catch(e) {
+    log('❌ Backend not reachable: ' + e.message, '#991B1B');
+  }
+
+  // Test 4 - careers API
+  try {
+    const r = await fetch(BASE + '/api/careers/');
+    const d = await r.json();
+    log(`✅ Careers API working — ${d.careers.length} careers found`, '#166534');
+  } catch(e) {
+    log('❌ Careers API failed: ' + e.message, '#991B1B');
+  }
+
+  // Test 5 - dashboard API
+  try {
+    const r = await fetch(BASE + '/api/recommend/dashboard', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const d = await r.json();
+    if (r.ok) {
+      log(`✅ Dashboard API working — skills: ${d.total_skills}, top match: ${d.top_recommendations[0]?.career_name || 'none'}`, '#166534');
+    } else {
+      log('❌ Dashboard API error: ' + d.error, '#991B1B');
+    }
+  } catch(e) {
+    log('❌ Dashboard API failed: ' + e.message, '#991B1B');
+  }
+
+  // Test 6 - profile API
+  try {
+    const r = await fetch(BASE + '/api/profile/', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const d = await r.json();
+    if (r.ok) {
+      log(`✅ Profile API working — ${d.skills.length} skills saved`, '#166534');
+    } else {
+      log('❌ Profile API error: ' + d.error, '#991B1B');
+    }
+  } catch(e) {
+    log('❌ Profile API failed: ' + e.message, '#991B1B');
+  }
+
+  // Test 7 - recommend API
+  try {
+    const r = await fetch(BASE + '/api/recommend/', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const d = await r.json();
+    if (r.ok) {
+      log(`✅ Recommend API working — ${d.recommendations.length} recommendations`, '#166534');
+      d.recommendations.slice(0,3).forEach(rec => {
+        log(`&nbsp;&nbsp;&nbsp;→ ${rec.career_name}: ${Math.round(rec.match_percent)}% match`, '#374151');
+      });
+    } else {
+      log('❌ Recommend API error: ' + d.error, '#991B1B');
+    }
+  } catch(e) {
+    log('❌ Recommend API failed: ' + e.message, '#991B1B');
+  }
+
+  // Test 8 - check JS files
+  log('--- Checking JS files ---', '#1D4ED8');
+  try {
+    const r = await fetch('static/js/api.js');
+    log(r.ok ? '✅ api.js loaded' : '❌ api.js not found', r.ok ? '#166534' : '#991B1B');
+  } catch(e) { log('❌ api.js error: ' + e.message, '#991B1B'); }
+
+  try {
+    const r = await fetch('static/js/app.js');
+    log(r.ok ? '✅ app.js loaded' : '❌ app.js not found', r.ok ? '#166534' : '#991B1B');
+  } catch(e) { log('❌ app.js error: ' + e.message, '#991B1B'); }
+
+  try {
+    const r = await fetch('static/css/style.css');
+    log(r.ok ? '✅ style.css loaded' : '❌ style.css not found', r.ok ? '#166534' : '#991B1B');
+  } catch(e) { log('❌ style.css error: ' + e.message, '#991B1B'); }
+
+  log('--- Tests complete ---', '#1D4ED8');
+  log('<a href="dashboard.html">→ Go to Dashboard</a>', '#1D4ED8');
+}
+
+runTests();
+</script>
+</body>
+</html>
