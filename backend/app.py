@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request, jsonify
 from datetime import timedelta
 from flask_cors import CORS
@@ -10,9 +11,15 @@ app = Flask(__name__)
 
 # ── Config ────────────────────────────────────────────────
 app.config['SECRET_KEY']                     = 'aicareerfinder_secret_2025'
-app.config['JWT_SECRET_KEY']                 = 'jwt_aicareerfinder_2025_super_secret_key_32bytes'
+app.config['JWT_SECRET_KEY'] = os.environ.get(
+    'JWT_SECRET_KEY',
+    'jwt_aicareerfinder_2025_super_secret_key_32bytes'
+)
 app.config['JWT_ACCESS_TOKEN_EXPIRES']       = False  
-app.config['SQLALCHEMY_DATABASE_URI']        = 'mysql+pymysql://root:Suhana.sql30@localhost/ai_career_pathfinder'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
+    'DATABASE_URL',
+    'mysql+pymysql://root:Suhana.sql30@localhost/ai_career_pathfinder'
+)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 CORS(app, origins=['*'])
@@ -674,12 +681,5 @@ def method_not_allowed(e):
 # START
 # ══════════════════════════════════════════════
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-        seed_careers()
-    print('\n' + '='*50)
-    print('  AI Career Path Finder — Backend')
-    print('  Home:    http://127.0.0.1:5000/')
-    print('  Careers: http://127.0.0.1:5000/api/careers/')
-    print('='*50 + '\n')
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
